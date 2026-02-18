@@ -298,10 +298,11 @@ async function setupExecutor(taskId: string, task: string, browserContext: Brows
   const navigatorLLM = createChatModel(navigatorProviderConfig, navigatorModel);
 
   let plannerLLM: BaseChatModel | null = null;
+  let plannerProviderConfig = null;
   const plannerModel = agentModels[AgentNameEnum.Planner];
   if (plannerModel) {
     // Log the provider config being used for the planner
-    const plannerProviderConfig = providers[plannerModel.provider];
+    plannerProviderConfig = providers[plannerModel.provider];
     plannerLLM = createChatModel(plannerProviderConfig, plannerModel);
   }
 
@@ -327,6 +328,7 @@ async function setupExecutor(taskId: string, task: string, browserContext: Brows
 
   const executor = new Executor(task, taskId, browserContext, navigatorLLM, {
     plannerLLM: plannerLLM ?? navigatorLLM,
+    plannerProviderConfig: plannerProviderConfig ?? navigatorProviderConfig,
     agentOptions: {
       maxSteps: generalSettings.maxSteps,
       maxFailures: generalSettings.maxFailures,

@@ -11,6 +11,7 @@ import type BrowserContext from '../browser/context';
 import { ActionBuilder } from './actions/builder';
 import { EventManager } from './event/manager';
 import { Actors, type EventCallback, EventType, ExecutionState } from './event/types';
+import type { ProviderConfig } from '@extension/storage';
 import {
   ChatModelAuthError,
   ChatModelBadRequestError,
@@ -33,6 +34,7 @@ export interface ExecutorExtraArgs {
   extractorLLM?: BaseChatModel;
   agentOptions?: Partial<AgentOptions>;
   generalSettings?: GeneralSettingsConfig;
+  plannerProviderConfig?: ProviderConfig;
 }
 
 export class Executor {
@@ -42,6 +44,7 @@ export class Executor {
   private readonly plannerPrompt: PlannerPrompt;
   private readonly navigatorPrompt: NavigatorPrompt;
   private readonly generalSettings: GeneralSettingsConfig | undefined;
+  private readonly plannerProviderConfig: ProviderConfig | undefined;
   private tasks: string[] = [];
   constructor(
     task: string,
@@ -64,6 +67,7 @@ export class Executor {
     );
 
     this.generalSettings = extraArgs?.generalSettings;
+    this.plannerProviderConfig = extraArgs?.plannerProviderConfig;
     this.tasks.push(task);
     this.navigatorPrompt = new NavigatorPrompt(context.options.maxActionsPerStep);
     this.plannerPrompt = new PlannerPrompt();
@@ -78,11 +82,19 @@ export class Executor {
       prompt: this.navigatorPrompt,
     });
 
-    this.planner = new PlannerAgent({
-      chatLLM: plannerLLM,
-      context: context,
-      prompt: this.plannerPrompt,
-    });
+    this.planner = new PlannerAgent(
+      {
+        chatLLM: plannerLLM,
+        context: context,
+        prompt: this.plannerPrompt,
+      },
+      {
+        plannerConfig: {
+          useServerForFirstPlan: true,
+          serverPlanEndpoint: this.plannerProviderConfig?.baseUrl,
+        },
+      },
+    );
 
     this.context = context;
     // Initialize message history

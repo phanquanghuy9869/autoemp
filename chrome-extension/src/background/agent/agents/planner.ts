@@ -1,4 +1,4 @@
-import { BaseAgent, type BaseAgentOptions, type ExtraAgentOptions } from './base';
+import { BaseAgent, type BaseAgentOptions, type ExtraAgentOptions, type PlannerConfig } from './base';
 import { createLogger } from '@src/background/log';
 import { z } from 'zod';
 import type { AgentOutput } from '../types';
@@ -46,13 +46,17 @@ export const plannerOutputSchema = z.object({
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
 
 export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerOutput> {
+  private readonly plannerConfig?: PlannerConfig;
+
   constructor(options: BaseAgentOptions, extraOptions?: Partial<ExtraAgentOptions>) {
     super(plannerOutputSchema, options, { ...extraOptions, id: 'planner' });
+    this.plannerConfig = extraOptions?.plannerConfig;
   }
 
   async execute(): Promise<AgentOutput<PlannerOutput>> {
     try {
       this.context.emitEvent(Actors.PLANNER, ExecutionState.STEP_START, 'Planning...');
+
       // get all messages from the message manager, state message should be the last one
       const messages = this.context.messageManager.getMessages();
       // Use full message history except the first one
@@ -77,7 +81,25 @@ export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerO
         plannerMessages[plannerMessages.length - 1] = new HumanMessage(newMsg);
       }
 
-      const modelOutput = await this.invoke(plannerMessages);
+      // Get model output - use server API for first call if configured, otherwise use LLM
+      let modelOutput: PlannerOutput | null = null;
+      if (
+        this.context.nSteps === 0 &&
+        this.plannerConfig?.useServerForFirstPlan &&
+        this.plannerConfig?.serverPlanEndpoint
+      ) {
+        logger.info('Using server-based planning for first call');
+        try {
+          modelOutput = await this.executeWithServerPlan();
+        } catch (error) {
+          // If server fails, fall back to LLM
+          logger.error('Server planning failed, falling back to LLM');
+          modelOutput = await this.invoke(plannerMessages);
+        }
+      } else {
+        modelOutput = await this.invoke(plannerMessages);
+      }
+
       if (!modelOutput) {
         throw new Error('Failed to validate planner output');
       }
@@ -127,5 +149,51 @@ export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerO
         error: errorMessage,
       };
     }
+  }
+
+  /**
+   * Execute planning using server API instead of LLM
+   */
+  private async executeWithServerPlan(): Promise<PlannerOutput> {
+    const endpoint = this.plannerConfig?.serverPlanEndpoint;
+    if (!endpoint) {
+      throw new Error('Server plan endpoint not configured');
+    }
+
+    // Get the task from message manager (first user message)
+    const messages = this.context.messageManager.getMessages();
+    const taskMessage = messages.find(msg => msg._getType() === 'human');
+    const taskContent = typeof taskMessage?.content === 'string' ? taskMessage.content : '';
+
+    // Construct the API endpoint URL
+    const apiUrl = `${endpoint}/api/plan`;
+
+    logger.info(`Fetching plan from server: ${apiUrl}`);
+
+    // Make API call to server
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        task: taskContent,
+        taskId: this.context.taskId,
+      }),
+      signal: this.context.controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+
+    const serverPlan = await response.json();
+
+    // Validate and transform server response to PlannerOutput format
+    const planOutput = plannerOutputSchema.parse(serverPlan);
+
+    logger.info('Server plan received', JSON.stringify(planOutput, null, 2));
+
+    return planOutput;
   }
 }

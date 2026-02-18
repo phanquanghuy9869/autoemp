@@ -14,6 +14,12 @@ const logger = createLogger('agent');
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CallOptions = Record<string, any>;
 
+// Configuration for planner agent to use server-based planning
+export interface PlannerConfig {
+  useServerForFirstPlan?: boolean;
+  serverPlanEndpoint?: string;
+}
+
 // Update options to use Zod schema
 export interface BaseAgentOptions {
   chatLLM: BaseChatModel;
@@ -25,6 +31,7 @@ export interface ExtraAgentOptions {
   id?: string;
   toolCallingMethod?: string;
   callOptions?: CallOptions;
+  plannerConfig?: PlannerConfig;
 }
 
 /**
