@@ -18,6 +18,7 @@ import { DEFAULT_AGENT_OPTIONS } from './agent/types';
 import { SpeechToTextService } from './services/speechToText';
 import { injectBuildDomTreeScripts } from './browser/dom/service';
 import { analytics } from './services/analytics';
+import { initialization } from './services/initialization';
 
 const logger = createLogger('background');
 
@@ -57,6 +58,11 @@ logger.info('background loaded');
 // Initialize analytics
 analytics.init().catch(error => {
   logger.error('Failed to initialize analytics:', error);
+});
+
+// Ensure default configuration on first run
+initialization.ensureDefaultConfiguration().catch(error => {
+  logger.error('Failed to ensure default configuration:', error);
 });
 
 // Listen for analytics settings changes
