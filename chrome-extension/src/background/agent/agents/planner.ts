@@ -1,4 +1,4 @@
-import { BaseAgent, type BaseAgentOptions, type ExtraAgentOptions, type PlannerConfig } from './base';
+import { BaseAgent, type BaseAgentOptions, type ExtraAgentOptions } from './base';
 import { createLogger } from '@src/background/log';
 import { z } from 'zod';
 import type { AgentOutput } from '../types';
@@ -45,10 +45,20 @@ export const plannerOutputSchema = z.object({
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
 
+// Configuration for server-based planning fallback
+export interface PlannerConfig {
+  useServerForFirstPlan?: boolean;
+  serverPlanEndpoint?: string;
+}
+
+export interface PlannerExtraOptions extends ExtraAgentOptions {
+  plannerConfig?: PlannerConfig;
+}
+
 export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerOutput> {
   private readonly plannerConfig?: PlannerConfig;
 
-  constructor(options: BaseAgentOptions, extraOptions?: Partial<ExtraAgentOptions>) {
+  constructor(options: BaseAgentOptions, extraOptions?: Partial<PlannerExtraOptions>) {
     super(plannerOutputSchema, options, { ...extraOptions, id: 'planner' });
     this.plannerConfig = extraOptions?.plannerConfig;
   }
@@ -160,26 +170,14 @@ export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerO
       throw new Error('Server plan endpoint not configured');
     }
 
-    // Get the task from message manager (first user message)
-    const messages = this.context.messageManager.getMessages();
-    const taskMessage = messages.find(msg => msg._getType() === 'human');
-    const taskContent = typeof taskMessage?.content === 'string' ? taskMessage.content : '';
-
     // Construct the API endpoint URL
-    const apiUrl = `${endpoint}/api/plan`;
+    const apiUrl = `${endpoint.replace(/\/$/, '')}/planner/ReplyMessage/Facebook`;
 
     logger.info(`Fetching plan from server: ${apiUrl}`);
 
     // Make API call to server
     const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        task: taskContent,
-        taskId: this.context.taskId,
-      }),
+      method: 'GET',
       signal: this.context.controller.signal,
     });
 
