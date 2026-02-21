@@ -747,6 +747,24 @@
       }
     }
   },
+  "act_replyMessages_start": {
+    "message": "正在為 $COUNT$ 則傳入訊息產生回覆",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "act_replyMessages_ok": {
+    "message": "$RESPONSES$",
+    "placeholders": {
+      "responses": {
+        "content": "$1",
+        "example": "[\"Hello world\"]"
+      }
+    }
+  },
   "act_scrollToPercent_start": {
     "message": "正在捲動至 $PERCENT$ 百分比位置",
     "placeholders": {

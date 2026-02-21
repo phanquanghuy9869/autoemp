@@ -22,6 +22,7 @@ import {
   nextPageActionSchema,
   scrollToTopActionSchema,
   scrollToBottomActionSchema,
+  getReplyMessagesActionSchema,
 } from './schemas';
 import { z } from 'zod';
 import { createLogger } from '@src/background/log';
@@ -375,6 +376,22 @@ export class ActionBuilder {
       return new ActionResult({ extractedContent: msg, includeInMemory: true });
     }, cacheContentActionSchema);
     actions.push(cacheContent);
+
+    const getReplyMessages = new Action(async (input: z.infer<typeof getReplyMessagesActionSchema.schema>) => {
+      const intent = input.intent || t('act_replyMessages_start', [input.incoming_messages.length.toString()]);
+      this.context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_START, intent);
+      console.log('Received incoming messages:', input.incoming_messages);
+      console.log(input);
+      const responseMessages = ['Hello world'];
+      const msg = t('act_replyMessages_ok', [JSON.stringify(responseMessages)]);
+
+      this.context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_OK, msg);
+      return new ActionResult({
+        extractedContent: msg,
+        includeInMemory: true,
+      });
+    }, getReplyMessagesActionSchema);
+    actions.push(getReplyMessages);
 
     // Scroll to percent
     const scrollToPercent = new Action(async (input: z.infer<typeof scrollToPercentActionSchema.schema>) => {

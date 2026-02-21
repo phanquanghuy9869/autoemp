@@ -41,12 +41,14 @@ Common action sequences:
 
 - Form filling: [{"input_text": {"intent": "Fill title", "index": 1, "text": "username"}}, {"input_text": {"intent": "Fill title", "index": 2, "text": "password"}}, {"click_element": {"intent": "Click submit button", "index": 3}}]
 - Navigation: [{"go_to_url": {"intent": "Go to url", "url": "https://example.com"}}]
+- Message reply: [{"get_reply_messages": {"intent": "Reply to incoming messages", "incoming_messages": [{"text": "Hi", "sender_name": "Alex", "timestamp": "2026-02-21T10:30:00Z"}, {"text": "Can you help?", "sender_name": "Taylor", "timestamp": "2026-02-21T10:31:00Z"}]}}]
 - Actions are executed in the given order
 - If the page changes after an action, the sequence will be interrupted
 - Only provide the action sequence until an action which changes the page state significantly
 - Try to be efficient, e.g. fill forms at once, or chain actions where nothing changes on the page
 - Do NOT use cache_content action in multiple action sequences
 - only use multiple actions if it makes sense
+- For message-reply tasks, prefer get_reply_messages and pass all incoming messages in one call
 
 3. ELEMENT INTERACTION:
 

@@ -755,6 +755,24 @@
       }
     }
   },
+  "act_replyMessages_start": {
+    "message": "Generating replies for $COUNT$ incoming messages",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "act_replyMessages_ok": {
+    "message": "$RESPONSES$",
+    "placeholders": {
+      "responses": {
+        "content": "$1",
+        "example": "[\"Hello world\"]"
+      }
+    }
+  },
   "act_scrollToPercent_start": {
     "message": "Scroll to percent: $PERCENT$",
     "placeholders": {

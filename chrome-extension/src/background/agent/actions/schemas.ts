@@ -213,3 +213,21 @@ export const waitActionSchema: ActionSchema = {
     seconds: z.number().int().default(3).describe('amount of seconds'),
   }),
 };
+
+export const getReplyMessagesActionSchema: ActionSchema = {
+  name: 'get_reply_messages',
+  description: 'Generate response messages from a list of incoming messages',
+  schema: z.object({
+    intent: z.string().default('').describe('purpose of this action'),
+    incoming_messages: z
+      .array(
+        z.object({
+          text: z.string().describe('content of the incoming message'),
+          sender_name: z.string().describe('name of the message sender'),
+          timestamp: z.string().describe('message timestamp'),
+        }),
+      )
+      .min(1)
+      .describe('incoming messages to reply to'),
+  }),
+};

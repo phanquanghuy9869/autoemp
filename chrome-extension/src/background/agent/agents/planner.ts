@@ -16,6 +16,7 @@ import {
   RequestCancelledError,
 } from './errors';
 import { filterExternalContent } from '../messages/utils';
+import { log } from 'node:console';
 const logger = createLogger('PlannerAgent');
 
 // Define Zod schema for planner output
@@ -103,7 +104,8 @@ export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerO
           modelOutput = await this.executeWithServerPlan();
         } catch (error) {
           // If server fails, fall back to LLM
-          logger.error('Server planning failed, falling back to LLM');
+          logger.error('Server planning failed: ' + error);
+          logger.info('Falling back to LLM-based planning');
           modelOutput = await this.invoke(plannerMessages);
         }
       } else {
